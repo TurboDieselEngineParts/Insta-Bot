@@ -1,148 +1,207 @@
-# ┌────────────────────────────────────────────────────────────────────────┐
-# │ InstaBot - Python Selenium Bot                                         │
-# ├────────────────────────────────────────────────────────────────────────┤
-# │ Copyright © 2019 Joseph Pereniguez                                     |
-# | (https://github.com/Estayparadox/InstaBot)                             │
-# ├────────────────────────────────────────────────────────────────────────┤
-# │ Licensed under the MIT                                                 |
-# | (https://github.com/Estayparadox/InstaBot/blob/master/LICENSE) license.│
-# └────────────────────────────────────────────────────────────────────────┘
-
 import pandas as pd
+import numpy as np
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from time import sleep, strftime
-from random import randint
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from time import sleep
+from datetime import datetime
+import random
 
-#for firefoxdriver
-# i = __file__.rfind('/')
-# webdriver = webdriver.Firefox(executable_path=__file__[:i + 1] + 'geckodriver.exe')
+# ---------- Configuration ----------
+CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
+USERNAME = "info@connectionsphere.co.uk"
+PASSWORD = "London728678!"
+HASHTAG_LIST = [
+    "Minimalism",
+    "CircularDesign",
+    "Passivhaus",
+    "LondonArchitecture",
+    "SustainableHomes",
+]
+AVG_ACTIONS_PER_HOUR = 3
+ACTIVE_HOURS = (8, 22)  # Only run between 8am and 10pm
 
-#for chromedriver
-chromedriver_path ='/Users/joseph/Projects/Insta-Bot/src/chromedriver' # Change this to your own chromedriver path!
-service = Service(executable_path=chromedriver_path)
-options = webdriver.ChromeOptions()
-webdriver = webdriver.Chrome(service=service, options=options)
 
-sleep(5)
-webdriver.get('https://www.instagram.com/accounts/login/')
-sleep(5)
+# ---------- Helper Functions ----------
+def wait_for_element(driver, by, value, timeout=15):
+    return WebDriverWait(driver, timeout).until(
+        EC.presence_of_element_located((by, value))
+    )
 
-# Skip the cookie banner
-button_login = webdriver.find_element(By.XPATH, '/html/body/div[2]/div/div/div[3]/div/div/div[1]/div/div[2]/div/div/div/div/div[2]/div/button[1]')
-button_login.click()
-sleep(3)
 
-# Setup credentials
-account_name="your_username" # Change this to your own Instagram username
-account_password="your_password" # Change this to your own Instagram password
+def wait_and_click(driver, by, value, timeout=15):
+    elem = WebDriverWait(driver, timeout).until(EC.element_to_be_clickable((by, value)))
+    elem.click()
+    return elem
 
-# Email & Password inputs
-username = webdriver.find_element(By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div/div/div[1]/section/main/div/div/div[1]/div[2]/form/div/div[1]/div/label/input')
-username.send_keys(account_name)
-password = webdriver.find_element(By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div/div/div[1]/section/main/div/div/div[1]/div[2]/form/div/div[2]/div/label/input')
-password.send_keys(account_password)
 
-# Login
-button_login = webdriver.find_element(By.XPATH, '//html/body/div[2]/div/div/div[2]/div/div/div/div[1]/section/main/div/div/div[1]/div[2]/form/div/div[3]/button')
-button_login.click()
-sleep(3)
+def poisson_delay(avg_actions_per_hour):
+    rate_per_min = avg_actions_per_hour / 60.0
+    delay_minutes = np.random.exponential(1 / rate_per_min)
+    return delay_minutes * 60  # seconds
 
-# Optional save info popup
-sleep(3)
-try:
-    save_info = webdriver.find_element(By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div/div/div[1]/div[1]/div[2]/section/main/div/div/div/div/div')
-    save_info.click()
-except :
-    pass
 
-# Optional notifications popup
-sleep(3)
-try:
-    notnow = webdriver.find_element(By.XPATH, '/html/body/div[2]/div/div/div[3]/div/div/div[1]/div/div[2]/div/div/div/div/div[2]/div/div/div[3]/button[2]')
-    notnow.click() 
-except :
-    pass
+def is_active_hour(active_hours):
+    now = datetime.now().hour
+    return active_hours[0] <= now < active_hours[1]
 
-hashtag_list = ['trip', 'dronephotography', 'traveler'] # Change this to your own tags
-prev_user_list = [] # If it's the first time you run it, use this line and comment the two below
-# prev_user_list = pd.read_csv('20190604-224633_users_followed_list.csv', delimiter=',').iloc[:,1:2] # useful to build a user log
-# prev_user_list = list(prev_user_list['0'])
 
-new_followed = []
-tag = -1
-followed = 0
-likes = 0
-comments = 0
+def random_comment():
+    comments = ["Really cool!", "Nice work :)", "Nice gallery!!", "So cool! :)"]
+    return random.choice(comments)
 
-for hashtag in hashtag_list:
-    tag += 1
-    webdriver.get('https://www.instagram.com/explore/tags/'+ hashtag_list[tag] + '/')
-    sleep(5)
-    first_thumbnail = webdriver.find_element(By.XPATH, '//*[@id="react-root"]/section/main/article/div/div/div/div[1]/div[1]/a/div')
 
-    first_thumbnail.click()
-    sleep(randint(1,2))
+# ---------- Main Bot Function ----------
+def run_instabot():
+    service = Service(executable_path=CHROMEDRIVER_PATH)
+    options = webdriver.ChromeOptions()
+    driver = webdriver.Chrome(service=service, options=options)
+    driver.implicitly_wait(5)  # Implicit wait for all element lookups
+    driver.maximize_window()
+
+    driver.get("https://www.instagram.com/accounts/login/")
+    sleep(2)
     try:
-        for x in range(1,200):
+        # Cookie banner
+        driver.find_element(
+            By.XPATH,
+            "/html/body/div[3]/div[1]/div/div[2]/div/div/div/div/div[2]/div/button[1]",
+        ).click()
+    except Exception:
+        pass
+    sleep(2)
 
-            username = webdriver.find_element(By.XPATH, '/html/body/div[3]/div[2]/div/article/header/div[2]/div[1]/div[1]/h2/a').text
-            if username not in prev_user_list:
+    # Login sequence with original XPATHs
+    username = driver.find_element(
+        By.XPATH,
+        "/html/body/div[1]/div/div/div[2]/div/div/div[1]/div[1]/div/section/main/div/div/div[1]/div[2]/div/form/div["
+        "1]/div[1]/div/label/input",
+    )
+    username.send_keys(USERNAME)
+    password = driver.find_element(
+        By.XPATH,
+        "/html/body/div[1]/div/div/div[2]/div/div/div[1]/div[1]/div/section/main/div/div/div[1]/div[2]/div/form/div["
+        "1]/div[2]/div/label/input",
+    )
+    password.send_keys(PASSWORD)
 
-                # If we already follow, do not unfollow
-                if webdriver.find_element(By.XPATH, '/html/body/div[3]/div[2]/div/article/header/div[2]/div[1]/div[2]/button').text == 'Follow' :
+    driver.find_element(
+        By.XPATH,
+        "/html/body/div[1]/div/div/div[2]/div/div/div[1]/div[1]/div/section/main/div/div/div[1]/div[2]/div/form/div["
+        "1]/div[3]",
+    ).click()
+    sleep(7)
 
-                    webdriver.find_element(By.XPATH, '/html/body/div[3]/div[2]/div/article/header/div[2]/div[1]/div[2]/button').click()
-                    new_followed.append(username)
-                    followed += 1
+    # Save info popup
+    try:
+        driver.find_element(
+            By.XPATH,
+            "/html/body/div[1]/div/div/div[2]/div/div/div[1]/div[1]/div[1]/section/main/div/div/section/div/button",
+        ).click()
+    except Exception:
+        pass
+    sleep(2)
 
-                    # Liking the picture
-                    button_like = webdriver.find_element(By.XPATH, '/html/body/div[3]/div[2]/div/article/div[2]/section[1]/span[1]/button')
-                    button_like.click()
-                    likes += 1
-                    sleep(randint(18,25))
+    # Notifications popup
+    try:
+        driver.find_element(
+            By.XPATH,
+            "/html/body/div[2]/div/div/div[3]/div/div/div[1]/div/div[2]/div/div/div/div/div[2]/div/div/div[3]/button[2]",
+        ).click()
+    except Exception:
+        pass
+    sleep(2)
 
-                    # Comments and tracker
-                    comm_prob = randint(1,10)
-                    print('{}_{}: {}'.format(hashtag, x,comm_prob))
-                    if comm_prob > 7:
-                        comments += 1
-                        webdriver.find_element(By.XPATH, '/html/body/div[3]/div[2]/div/article/div[2]/section[1]/span[2]/button/span').click()
-                        comment_box = webdriver.find_element(By.XPATH, '/html/body/div[3]/div[2]/div/article/div[2]/section[3]/div/form/textarea')
+    # Load user list
+    try:
+        prev_user_list = (
+            pd.read_csv("users_followed_list.csv", delimiter=",").iloc[:, 1].tolist()
+        )
+    except Exception:
+        prev_user_list = []
 
-                        if comm_prob < 7:
-                            comment_box.send_keys('Really cool!')
-                            sleep(1)
-                        elif (comm_prob > 6) and (comm_prob < 9):
-                            comment_box.send_keys('Nice work :)')
-                            sleep(1)
-                        elif comm_prob == 9:
-                            comment_box.send_keys('Nice gallery!!')
-                            sleep(1)
-                        elif comm_prob == 10:
-                            comment_box.send_keys('So cool! :)')
-                            sleep(1)
-                        # Enter to post comment
-                        comment_box.send_keys(Keys.ENTER)
-                        sleep(randint(22, 28))
+    new_followed, followed, likes, comments = [], 0, 0, 0
 
-                # Next picture
-                webdriver.find_element(By.LINK_TEXT, 'Next').click()
-                sleep(randint(25, 29))
-            else:
-                webdriver.find_element(By.LINK_TEXT, 'Next').click()
-                sleep(randint(20, 26))
-    # Some hashtag stops refreshing photos (it may happen sometimes), it continues to the next
-    except:
-        continue
+    for hashtag in HASHTAG_LIST:
+        if not is_active_hour(ACTIVE_HOURS):
+            print("Outside active hours. Sleeping for 10 minutes.")
+            sleep(600)
+            continue
 
-for n in range(0,len(new_followed)):
-    prev_user_list.append(new_followed[n])
+        driver.get(f"https://www.instagram.com/explore/tags/{hashtag}/")
+        sleep(5)
+        try:
+            first_thumbnail = driver.find_element(
+                By.XPATH,
+                '//*[@id="react-root"]/section/main/article/div/div/div/div[1]/div[1]/a/div',
+            )
+            first_thumbnail.click()
+        except Exception:
+            continue
+        sleep(random.randint(1, 2))
 
-updated_user_df = pd.DataFrame(prev_user_list)
-updated_user_df.to_csv('{}_users_followed_list.csv'.format(strftime("%Y%m%d-%H%M%S")))
-print('Liked {} photos.'.format(likes))
-print('Commented {} photos.'.format(comments))
-print('Followed {} new people.'.format(followed))
+        for _ in range(200):
+            delay = poisson_delay(AVG_ACTIONS_PER_HOUR)
+            sleep(delay)
+
+            try:
+                username = driver.find_element(
+                    By.XPATH,
+                    "/html/body/div[3]/div[2]/div/article/header/div[2]/div[1]/div[1]/h2/a",
+                ).text
+                if username not in prev_user_list:
+                    follow_btn = driver.find_element(
+                        By.XPATH,
+                        "/html/body/div[3]/div[2]/div/article/header/div[2]/div[1]/div[2]/button",
+                    )
+                    if follow_btn.text == "Follow":
+                        follow_btn.click()
+                        new_followed.append(username)
+                        followed += 1
+
+                        button_like = driver.find_element(
+                            By.XPATH,
+                            "/html/body/div[3]/div[2]/div/article/div[2]/section[1]/span[1]/button",
+                        )
+                        button_like.click()
+                        likes += 1
+                        sleep(random.randint(18, 25))
+
+                        comm_prob = random.randint(1, 10)
+                        if comm_prob > 7:
+                            comments += 1
+                            try:
+                                driver.find_element(
+                                    By.XPATH,
+                                    "/html/body/div[3]/div[2]/div/article/div[2]/section[1]/span[2]/button/span",
+                                ).click()
+                                comment_box = driver.find_element(
+                                    By.XPATH,
+                                    "/html/body/div[3]/div[2]/div/article/div[2]/section[3]/div/form/textarea",
+                                )
+                                comment_box.send_keys(random_comment())
+                                sleep(1)
+                                comment_box.send_keys(Keys.ENTER)
+                                sleep(random.randint(22, 28))
+                            except Exception:
+                                pass
+                    driver.find_element(By.LINK_TEXT, "Next").click()
+                    sleep(random.randint(25, 29))
+                else:
+                    driver.find_element(By.LINK_TEXT, "Next").click()
+                    sleep(random.randint(20, 26))
+            except Exception:
+                break
+
+    prev_user_list.extend(new_followed)
+    pd.DataFrame(prev_user_list).to_csv("users_followed_list.csv")
+    print(f"Liked {likes} photos.")
+    print(f"Commented {comments} photos.")
+    print(f"Followed {followed} new people.")
+
+
+if __name__ == "__main__":
+    run_instabot()
