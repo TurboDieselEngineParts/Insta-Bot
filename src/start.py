@@ -13,15 +13,13 @@ from datetime import datetime
 import random
 
 # ---------- Configuration ----------
-CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
+CHROMEDRIVER_PATH = "/opt/homebrew/bin/chromedriver"
 USERNAME = "info@connectionsphere.co.uk"
 PASSWORD = "London728678!"
 HASHTAG_LIST = [
-    "Minimalism",
-    "CircularDesign",
-    "Passivhaus",
+    # "Passivhaus",
     "LondonArchitecture",
-    "SustainableHomes",
+    # "SustainableHomes",
 ]
 AVG_ACTIONS_PER_HOUR = 3
 ACTIVE_HOURS = (8, 22)  # Only run between 8am and 10pm
@@ -168,7 +166,7 @@ def run_instabot():
         try:
             first_thumbnail = driver.find_element(
                 By.XPATH,
-                '//*[@id="react-root"]/section/main/article/div/div/div/div[1]/div[1]/a/div',
+                "/html/body/div[1]/div/div/div[2]/div/div/div[1]/div[1]/div[1]/section/main/div/div[2]",
             )
             ActionChains(driver).move_to_element(first_thumbnail).pause(
                 random.uniform(0.5, 1.5)
@@ -184,61 +182,62 @@ def run_instabot():
             try:
                 username = driver.find_element(
                     By.XPATH,
-                    "/html/body/div[3]/div[2]/div/article/header/div[2]/div[1]/div[1]/h2/a",
+                    "/html/body/div[5]/div[1]/div/div[3]/div/div/div/div/div[2]/div/article/div/div[2]/div/div/div[1]/div/header/div[2]/div[1]/div[1]/div/div/span/span/span/div/div/a/div",
                 ).text
-                if username not in prev_user_list:
-                    follow_btn = driver.find_element(
-                        By.XPATH,
-                        "/html/body/div[3]/div[2]/div/article/header/div[2]/div[1]/div[2]/button",
-                    )
-                    if follow_btn.text == "Follow":
-                        ActionChains(driver).move_to_element(follow_btn).pause(
-                            random.uniform(0.5, 1.5)
-                        ).click().perform()
-                        new_followed.append(username)
-                        followed += 1
-
-                        button_like = driver.find_element(
-                            By.XPATH,
-                            "/html/body/div[3]/div[2]/div/article/div[2]/section[1]/span[1]/button",
-                        )
-                        ActionChains(driver).move_to_element(button_like).pause(
-                            random.uniform(0.5, 1.5)
-                        ).click().perform()
-                        likes += 1
-                        sleep(random.randint(18, 25))
-
-                        comm_prob = random.randint(1, 10)
-                        if comm_prob > 7:
-                            comments += 1
-                            try:
-                                driver.find_element(
-                                    By.XPATH,
-                                    "/html/body/div[3]/div[2]/div/article/div[2]/section[1]/span[2]/button/span",
-                                ).click()
-                                comment_box = driver.find_element(
-                                    By.XPATH,
-                                    "/html/body/div[3]/div[2]/div/article/div[2]/section[3]/div/form/textarea",
-                                )
-                                type_like_human(comment_box, random_comment())
-                                sleep(1)
-                                comment_box.send_keys(Keys.ENTER)
-                                sleep(random.randint(22, 28))
-                            except Exception:
-                                pass
-                    driver.find_element(By.LINK_TEXT, "Next").click()
-                    sleep(random.randint(25, 29))
-                else:
-                    driver.find_element(By.LINK_TEXT, "Next").click()
-                    sleep(random.randint(20, 26))
+                print(f"Username: {username}")
+    #             if username not in prev_user_list:
+    #                 follow_btn = driver.find_element(
+    #                     By.XPATH,
+    #                     "/html/body/div[5]/div[1]/div/div[3]/div/div/div/div/div[2]/div/article/div/div[2]/div/div/div[1]/div/header/div[2]/div[1]/div[2]/button/div/div",
+    #                 )
+    #                 if follow_btn.text == "Follow":
+    #                     ActionChains(driver).move_to_element(follow_btn).pause(
+    #                         random.uniform(0.5, 1.5)
+    #                     ).click().perform()
+    #                     new_followed.append(username)
+    #                     followed += 1
+    #
+    #                     button_like = driver.find_element(
+    #                         By.XPATH,
+    #                         "/html/body/div[5]/div[1]/div/div[3]/div/div/div/div/div[2]/div/article/div/div[2]/div/div/div[2]/section[1]/span[1]/div",
+    #                     )
+    #                     ActionChains(driver).move_to_element(button_like).pause(
+    #                         random.uniform(0.5, 1.5)
+    #                     ).click().perform()
+    #                     likes += 1
+    #                     sleep(random.randint(18, 25))
+    #
+    #                     comm_prob = random.randint(1, 10)
+    #                     if comm_prob > 7:
+    #                         comments += 1
+    #                         try:
+    #                             driver.find_element(
+    #                                 By.XPATH,
+    #                                 "/html/body/div[3]/div[2]/div/article/div[2]/section[1]/span[2]/button/span",
+    #                             ).click()
+    #                             comment_box = driver.find_element(
+    #                                 By.XPATH,
+    #                                 "/html/body/div[3]/div[2]/div/article/div[2]/section[3]/div/form/textarea",
+    #                             )
+    #                             type_like_human(comment_box, random_comment())
+    #                             sleep(1)
+    #                             comment_box.send_keys(Keys.ENTER)
+    #                             sleep(random.randint(22, 28))
+    #                         except Exception:
+    #                             pass
+    #                 driver.find_element(By.LINK_TEXT, "Next").click()
+    #                 sleep(random.randint(25, 29))
+    #             else:
+    #                 driver.find_element(By.LINK_TEXT, "Next").click()
+    #                 sleep(random.randint(20, 26))
             except Exception:
                 break
-
-    prev_user_list.extend(new_followed)
-    pd.DataFrame(prev_user_list).to_csv("users_followed_list.csv")
-    print(f"Liked {likes} photos.")
-    print(f"Commented {comments} photos.")
-    print(f"Followed {followed} new people.")
+    #
+    # prev_user_list.extend(new_followed)
+    # pd.DataFrame(prev_user_list).to_csv("users_followed_list.csv")
+    # print(f"Liked {likes} photos.")
+    # print(f"Commented {comments} photos.")
+    # print(f"Followed {followed} new people.")
 
 
 if __name__ == "__main__":
