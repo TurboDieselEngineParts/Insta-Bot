@@ -176,8 +176,9 @@ def run_instabot():
         sleep(random.uniform(1, 3))
 
         for _ in range(200):
-            delay = poisson_delay(AVG_ACTIONS_PER_HOUR)
-            sleep(delay)
+            # delay = poisson_delay(AVG_ACTIONS_PER_HOUR)
+            # sleep(delay)
+            sleep(random.uniform(10, 30))
 
             try:
                 username = driver.find_element(
@@ -185,51 +186,55 @@ def run_instabot():
                     "/html/body/div[5]/div[1]/div/div[3]/div/div/div/div/div[2]/div/article/div/div[2]/div/div/div[1]/div/header/div[2]/div[1]/div[1]/div/div/span/span/span/div/div/a/div",
                 ).text
                 print(f"Username: {username}")
-    #             if username not in prev_user_list:
-    #                 follow_btn = driver.find_element(
-    #                     By.XPATH,
-    #                     "/html/body/div[5]/div[1]/div/div[3]/div/div/div/div/div[2]/div/article/div/div[2]/div/div/div[1]/div/header/div[2]/div[1]/div[2]/button/div/div",
-    #                 )
-    #                 if follow_btn.text == "Follow":
-    #                     ActionChains(driver).move_to_element(follow_btn).pause(
-    #                         random.uniform(0.5, 1.5)
-    #                     ).click().perform()
-    #                     new_followed.append(username)
-    #                     followed += 1
-    #
-    #                     button_like = driver.find_element(
-    #                         By.XPATH,
-    #                         "/html/body/div[5]/div[1]/div/div[3]/div/div/div/div/div[2]/div/article/div/div[2]/div/div/div[2]/section[1]/span[1]/div",
-    #                     )
-    #                     ActionChains(driver).move_to_element(button_like).pause(
-    #                         random.uniform(0.5, 1.5)
-    #                     ).click().perform()
-    #                     likes += 1
-    #                     sleep(random.randint(18, 25))
-    #
-    #                     comm_prob = random.randint(1, 10)
-    #                     if comm_prob > 7:
-    #                         comments += 1
-    #                         try:
-    #                             driver.find_element(
-    #                                 By.XPATH,
-    #                                 "/html/body/div[3]/div[2]/div/article/div[2]/section[1]/span[2]/button/span",
-    #                             ).click()
-    #                             comment_box = driver.find_element(
-    #                                 By.XPATH,
-    #                                 "/html/body/div[3]/div[2]/div/article/div[2]/section[3]/div/form/textarea",
-    #                             )
-    #                             type_like_human(comment_box, random_comment())
-    #                             sleep(1)
-    #                             comment_box.send_keys(Keys.ENTER)
-    #                             sleep(random.randint(22, 28))
-    #                         except Exception:
-    #                             pass
-    #                 driver.find_element(By.LINK_TEXT, "Next").click()
-    #                 sleep(random.randint(25, 29))
-    #             else:
-    #                 driver.find_element(By.LINK_TEXT, "Next").click()
-    #                 sleep(random.randint(20, 26))
+                if username not in prev_user_list:
+                    print(f"Unseen username: {username}")
+                    follow_btn = driver.find_element(
+                        By.XPATH,
+                        "/html/body/div[5]/div[1]/div/div[3]/div/div/div/div/div[2]/div/article/div/div[2]/div/div/div[1]/div/header/div[2]/div[1]/div[2]/button/div/div",
+                    )
+                    print(f"follow_btn: {follow_btn.text}")
+                    if follow_btn.text == "Follow":
+                        ActionChains(driver).move_to_element(follow_btn).pause(
+                            random.uniform(0.5, 1.5)
+                        ).click().perform()
+                        new_followed.append(username)
+                        followed += 1
+                        print(f"Followed user: {username}")
+
+                        button_like = driver.find_element(
+                            By.XPATH,
+                            "/html/body/div[5]/div[1]/div/div[3]/div/div/div/div/div[2]/div/article/div/div[2]/div/div/div[2]/section[1]/span[1]/div",
+                        )
+                        ActionChains(driver).move_to_element(button_like).pause(
+                            random.uniform(0.5, 1.5)
+                        ).click().perform()
+                        likes += 1
+                        print(f"Likes: {likes}")
+                        sleep(random.randint(18, 25))
+            #
+            #                     comm_prob = random.randint(1, 10)
+            #                     if comm_prob > 7:
+            #                         comments += 1
+            #                         try:
+            #                             driver.find_element(
+            #                                 By.XPATH,
+            #                                 "/html/body/div[3]/div[2]/div/article/div[2]/section[1]/span[2]/button/span",
+            #                             ).click()
+            #                             comment_box = driver.find_element(
+            #                                 By.XPATH,
+            #                                 "/html/body/div[3]/div[2]/div/article/div[2]/section[3]/div/form/textarea",
+            #                             )
+            #                             type_like_human(comment_box, random_comment())
+            #                             sleep(1)
+            #                             comment_box.send_keys(Keys.ENTER)
+            #                             sleep(random.randint(22, 28))
+            #                         except Exception:
+            #                             pass
+            #                 driver.find_element(By.LINK_TEXT, "Next").click()
+            #                 sleep(random.randint(25, 29))
+            #             else:
+            #                 driver.find_element(By.LINK_TEXT, "Next").click()
+            #                 sleep(random.randint(20, 26))
             except Exception:
                 break
     #
